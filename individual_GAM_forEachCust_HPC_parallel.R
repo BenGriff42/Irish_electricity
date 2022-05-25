@@ -104,8 +104,6 @@ rownames(predz) <- NULL
 
 all_predz_df = indCons[1:2, 1:ncust]*0 # empty dataframe to fill for weeks 6-51 predictions
 rownames(all_predz_df) <- NULL
-# remove indCons
-rm("indCons")
 
 # fit week by week and predict
 for(week in 6:51){
