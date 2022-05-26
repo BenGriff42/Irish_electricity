@@ -31,14 +31,17 @@ for (i in 1:100){
 }
 
 # fit week by week and predict
-fit_gam = gam(I1002 ~ dow + s(tod) + s(smoothtemp) + s(I1002lag48) + s(I1002lag336), data = samp[1:(5*336),],family=gaussian(link = "log"))
+fit_gam = gam(I1002 ~ dow + s(tod) + s(smoothtemp) + s(I1002lag48) + s(I1002lag336), 
+              data = samp[1:(5*336),],family=gaussian(link = "log"))
 predz = predict(fit_gam,newdata = samp[(5*336+1):(6*336),])
 
 for(week in 7:51){
-  fit_gam = gam(I1002 ~ dow + s(tod) + s(smoothtemp) + s(I1002lag48) + s(I1002lag336), data = samp[1:((week-1)*336),],family=gaussian(link = "log"))
+  fit_gam = gam(I1002 ~ dow + s(tod) + s(smoothtemp) + s(I1002lag48) + s(I1002lag336), 
+                data = samp[1:((week-1)*336),],family=gaussian(link = "log"))
   predz = c(predz,predict(fit_gam,newdata = samp[((week-1)*336+1):(week*336),]))
 }
 
 plot(samp$I1002,type="l")
 lines((5*336+1):(51*336),exp(predz),type="l",col=2)
 plot((5*336+1):(51*336),exp(predz),type="l",col=2)
+

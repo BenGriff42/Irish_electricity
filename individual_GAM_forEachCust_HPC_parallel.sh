@@ -1,10 +1,12 @@
 #!/bin/bash
 
-#SBATCH --job-name=IndGAM_allPredz_v1
+#SBATCH --job-name=IndGAM_allPredz_v1_log_parallel
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=24:00:00
+#SBATCH --cpus-per-task=8
+
 #SBATCH --mem=128G
 
 cd "${SLURM_SUBMIT_DIR}"
@@ -21,5 +23,5 @@ module load lang/r/4.1.2-gcc
 
 export OMP_NUM_THREADS=1
 
-Rscript individual_GAM_forEachCust_HPC.R
+Rscript individual_GAM_forEachCust_HPC_parallel.R
 

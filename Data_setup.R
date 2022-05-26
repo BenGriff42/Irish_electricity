@@ -1,6 +1,6 @@
 library(dplyr)
 library(mgcv)
-setwd("~/Documents/Group_project_2")
+setwd("~/Documents/SM2SC2GroupCW/Irish_electricity")
 load("Irish.RData")
 
 indCons = Irish$indCons
@@ -19,5 +19,6 @@ for(i in 2:nrow(extra)){
   smoothtemp[i] = alpha*smoothtemp[i-1] + (1-alpha)*extra$temp[i]
 }
 
+# plot smoothtemp
 plot(extra$temp,pch=".")
 lines(smoothtemp)

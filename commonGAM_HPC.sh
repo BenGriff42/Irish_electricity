@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=IndGAM_allPredz_v1
+#SBATCH --job-name=commonGAM_test_v1
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -21,5 +21,5 @@ module load lang/r/4.1.2-gcc
 
 export OMP_NUM_THREADS=1
 
-Rscript individual_GAM_forEachCust_HPC.R
+Rscript commonGAM_HPC.R
 
