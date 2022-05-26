@@ -43,24 +43,46 @@ samp = data.frame(samp,indCons[,1:ncust])
 cust_names = colnames(indCons)
 
 n =nrow(samp)
-# this adds a new column for each household
-# the column added is the lag48 value of the energy usage
+
+
+########################################################################
+### USING LOG(X + 0.001) AS THE RESPONSE IN THE MODEL
+########################################################################
+
+logcust_names = paste0(cust_names, "log")
+
+## ADD IN A LOG COLUMN FOR EACH CUSTOMER
+# this adds a new column for each household which is log(usage + 0.001)
 for (i in 1:ncust){
-  vec.name = paste0(colnames(samp)[i+8], "lag48")
+  vec.name = paste0(colnames(samp)[i+8], "log")
   colname = colnames(samp)[i+8]
-  coltoadd <- samp[1:(n-48), colname]
-  samp[,vec.name] <- NA
-  samp[49:n, vec.name] <- coltoadd
+  coltoadd <- log( samp[1:n, colname] + 0.001 )
+  samp[1:n,vec.name] <- coltoadd
+}
+
+# make a new dataframe for the log(x+0.001) data
+logsamp = samp[1:n,c((1:8), (ncust+9):((2*ncust)+8)) ]
+
+rm("samp")
+
+# this adds a new column for each household
+# the column added is the lag48 value of the log(energy usage+0.001)
+for (i in 1:ncust){
+  vec.name = paste0(colnames(logsamp)[i+8], "lag48")
+  colname = colnames(logsamp)[i+8]
+  coltoadd <- logsamp[1:(n-48), colname]
+  logsamp[,vec.name] <- NA
+  logsamp[49:n, vec.name] <- coltoadd
 }
 
 # this adds a new column for each household
-# the column added is the lag336 value of the energy usage
+# the column added is the lag336 value of the log(energy usage + 0.001)
 for (i in 1:ncust){
-  vec.name = paste0(colnames(samp)[i+8], "lag336")
-  colname = colnames(samp)[i+8]
-  coltoadd <- samp[1:(n-336), colname]
-  samp[,vec.name] <- NA
-  samp[337:n, vec.name] <- coltoadd
+  vec.name = paste0(colnames(logsamp)[i+8], "lag336")
+  colname = colnames(logsamp)[i+8]
+  coltoadd <- logsamp[1:(n-336), colname]
+  logsamp[,vec.name] <- NA
+  logsamp[337:n, vec.name] <- coltoadd
 }
 
 ######################################
@@ -68,26 +90,27 @@ for (i in 1:ncust){
 ######################################
 
 # write a function for each customer for the inner for loop
-# train and test samp
+# train and test logsamp
 each_cust_function <- function(cust){
-samp_train = samp[1:((week-1)*336) , c(1:6,8,c(8,8+ncust,8+2*ncust)+cust)]
-names(samp_train)[8] <- "dem"
-names(samp_train)[9] <- "demlag48"
-names(samp_train)[10] <- "demlag336"
-samp_test = samp[((week-1)*336+1):(week*336) , c(1:6,8,c(8,8+ncust,8+2*ncust)+cust)]
-names(samp_test)[8] <- "dem"
-names(samp_test)[9] <- "demlag48"
-names(samp_test)[10] <- "demlag336"
+logsamp_train = logsamp[1:((week-1)*336) , c(1:6,8,c(8,8+ncust,8+2*ncust)+cust)]
+names(logsamp_train)[8] <- "logdem"
+names(logsamp_train)[9] <- "logdemlag48"
+names(logsamp_train)[10] <- "logdemlag336"
+logsamp_test = logsamp[((week-1)*336+1):(week*336) , c(1:6,8,c(8,8+ncust,8+2*ncust)+cust)]
+names(logsamp_test)[8] <- "logdem"
+names(logsamp_test)[9] <- "logdemlag48"
+names(logsamp_test)[10] <- "logdemlag336"
 
-# specify customer column from samp to fit using cust_names[cust]
-fit_gam = gam(dem ~ 
-                dow + s(tod) + s(smoothtemp) + s(demlag48)
-              + s(demlag336), data = samp_train,
-              family=gaussian(link = "log"))
+# specify customer column from logsamp to fit using cust_names[cust]
+fit_gam = bam(logdem ~ 
+                dow + s(tod) + s(smoothtemp) + s(logdemlag48)
+              + s(logdemlag336), data = logsamp_train,
+              family=gaussian(),
+              discrete=TRUE)
 
-#predz[,cust] = exp(predict(fit_gam,newdata = samp_test))
-#return(exp(predict(fit_gam,newdata = samp_test)))
-return(data.frame(name=cust_names[cust], t(as.matrix(exp(predict(fit_gam,newdata = samp_test))))))
+#predz[,cust] = exp(predict(fit_gam,newdata = logsamp_test))
+#return(exp(predict(fit_gam,newdata = logsamp_test)))
+return(data.frame(name=logcust_names[cust], t(as.matrix(exp(predict(fit_gam,newdata = logsamp_test))))))
 }
 
 
@@ -102,18 +125,18 @@ registerDoParallel(num_cores)
 predz = indCons[1:336, 1:ncust]*0
 rownames(predz) <- NULL
 
-all_predz_df = indCons[1:2, 1:ncust]*0 # empty dataframe to fill for weeks 6-51 predictions
+all_predz_df = logsamp[1:2, 9:(ncust+8)]*0  # empty dataframe to fill for weeks 6-51 predictions
 rownames(all_predz_df) <- NULL
 
 # fit week by week and predict
-for(week in 6:51){
+for(week in 6:50){
   predz = foreach(cust = 1:ncust, .combine = "rbind") %dopar% {
     each_cust_function(cust)
   }
   
-  predz.order = t(predz[which(predz[,1] ==cust_names[1:ncust]),-1])
+  predz.order = t(predz[which(predz[,1] ==logcust_names[1:ncust]),-1])
   rownames(predz.order) = NULL
-  colnames(predz.order) = cust_names[1:ncust]
+  colnames(predz.order) = logcust_names[1:ncust]
   
   predz.df = predz.order
   
@@ -127,4 +150,9 @@ stopImplicitCluster()
 
 # OUT OF FOR LOOP
 all_predz_df = all_predz_df[-(1:2),] # remove first 2 rows of zeros
-write.table(all_predz_df, file ="IndGAM_allPredz.txt")
+
+# round to  3d.p.
+all_predz_df = all_predz_df %>%
+  mutate_if(is.numeric, round, digits=3)
+
+write.table(all_predz_df, file ="IndGAM_log_allPredz_parallel.txt")
