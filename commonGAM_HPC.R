@@ -64,34 +64,37 @@ fit_com = bam(logcons ~ dow + sc + own + hw + wg + s(tod)
               nthreads = num_cores)
 
 predz = exp(predict(fit_com,newdata = samp_test))
+predz = predz %>%
+  mutate_if(is.numeric, round, digits=3) # round to 3dp
 predM = matrix(predz, ncol=s, nrow = 336,byrow = F)
 #write.table(matrix(predz, ncol=s, nrow = 336,byrow = F), file = paste0("week",week,".txt"))
-rm("extra","indCons","Irish", "meanWeek", "predM", "survey", "smoothtemp")
+rm("extra","indCons","Irish", "survey")
 
-write.table(predM, file ="test_commonGAM.txt")
 
-# 
-# 
-# for(week in 7:51){
-#   samp_train = samp2[rep(1:(week*336), times = s) + n*rep(0:(s-1),each = week*336),]
-#   samp_test = samp2[rep((week*336+1):((week+1)*336),times = s) + n*rep(0:(s-1),each = 336),]
-#   
-#   fit_com = bam(logcons ~ dow + sc + own + hw + wg + s(tod) 
-#                 + s(smoothtemp) + s(meanWeek),
-#                 data = samp_train,
-#                 family=gaussian(), 
-#                 discrete=TRUE,
-#                 nthreads = num_cores)
-#   
-#   predz = exp(predict(fit_com,newdata = samp_test))
-#   
-#   predM = rbind(predM, matrix(predz, ncol=s, nrow = 336,byrow = F))
-#   #write.table(matrix(predz, ncol=s, nrow = 336,byrow = F), file = paste0("week",week,".txt"))
-#   
-#   print(week)
-# }
-# 
-# print("exit loop")
-# 
-# # OUT OF FOR LOOP
-# write.table(predM, file ="commonGAM_log_predz.txt")
+
+
+for(week in 7:51){
+  samp_train = samp2[rep(1:(week*336), times = s) + n*rep(0:(s-1),each = week*336),]
+  samp_test = samp2[rep((week*336+1):((week+1)*336),times = s) + n*rep(0:(s-1),each = 336),]
+
+  fit_com = bam(logcons ~ dow + sc + own + hw + wg + s(tod)
+                + s(smoothtemp) + s(meanWeek),
+                data = samp_train,
+                family=gaussian(),
+                discrete=TRUE,
+                nthreads = num_cores)
+
+  predz = exp(predict(fit_com,newdata = samp_test))
+  predz = predz %>%
+    mutate_if(is.numeric, round, digits=3) # round to 3dp
+
+  predM = rbind(predM, matrix(predz, ncol=s, nrow = 336,byrow = F))
+  #write.table(matrix(predz, ncol=s, nrow = 336,byrow = F), file = paste0("week",week,".txt"))
+
+  print(week)
+}
+
+print("exit loop")
+
+# OUT OF FOR LOOP
+write.table(predM, file ="commonGAM_log_predz.txt")
