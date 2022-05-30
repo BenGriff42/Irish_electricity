@@ -64,8 +64,12 @@ fit_com = bam(logcons ~ dow + sc + own + hw + wg + s(tod)
               nthreads = num_cores)
 
 predz = exp(predict(fit_com,newdata = samp_test))
-predz = predz %>%
-  mutate_if(is.numeric, round, digits=3) # round to 3dp
+
+predz = round(predz, 3) # round to 3dp 
+
+#predz = predz %>%
+ # mutate_if(is.numeric, round, digits=3) # round to 3dp  -changed as crashed HPC script 30/05
+
 predM = matrix(predz, ncol=s, nrow = 336,byrow = F)
 #write.table(matrix(predz, ncol=s, nrow = 336,byrow = F), file = paste0("week",week,".txt"))
 rm("extra","indCons","Irish", "survey")
@@ -85,8 +89,10 @@ for(week in 7:51){
                 nthreads = num_cores)
 
   predz = exp(predict(fit_com,newdata = samp_test))
-  predz = predz %>%
-    mutate_if(is.numeric, round, digits=3) # round to 3dp
+  
+  predz = round(predz,3)
+ # predz = predz %>%
+   # mutate_if(is.numeric, round, digits=3) # round to 3dp
 
   predM = rbind(predM, matrix(predz, ncol=s, nrow = 336,byrow = F))
   #write.table(matrix(predz, ncol=s, nrow = 336,byrow = F), file = paste0("week",week,".txt"))
