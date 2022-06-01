@@ -33,6 +33,10 @@ bad_predz = error_areas[sapply(error_areas, function(x) any(x>5.5))]
 bad_predz_names = substring(colnames(bad_predz), 1, nchar(colnames(bad_predz))-3) # remove 'log'
 # this shows that I4593 and I5198 have erraneous predictions
 
+load("Irish.RData")
+indCons = Irish$indCons
+rm("Irish")
+
 odd = indCons[, bad_predz_names] # this is the true data fr the 2 customers with crazy large predictions
 plot(odd[,1], type='l', ylim=c(0,10)) # i think this has really large values (relatively), but not the largest
 plot(odd[,2], type='l', ylim=c(0,10)) # long low demand periods
@@ -40,26 +44,37 @@ plot(odd[,2], type='l', ylim=c(0,10)) # long low demand periods
 # remove these two weird things 
 drop = colnames(bad_predz)
 predictions3dp_modified = predictions3dp[, !(names(predictions3dp) %in% drop)]
+predictions3dp_modified = na.omit(predictions3dp_modified)
 
 
 ## In 2 side by side plots, have the predicted value for all bar 2 customers vs the true values
 # it is plotting the mean value of all the customers demand for each day
-par(mfrow = c(1,2))
 
-ncust_mod = ncol(predictions3dp_modified)
-entire_avg_mod = rowSums(predictions3dp_modified)/ncust_mod
+#par(mfrow = c(1,2))
 
-plot(entire_avg_mod[1:48], type="l", ylim=c(0, 1.5), col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)))
-for (i in 2:(nrow(predictions3dp_modified)/48)){
-  lines(entire_avg_mod[((i-1)*48 +1):(i*48)], col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)))
-}
 
+# true values
 ncust = ncol(indCons)
 entire_avg_cons = rowSums(indCons)/ncust
 
-plot(entire_avg_cons[1:48], type="l", ylim=c(0, 1.5), col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)))
+plot(entire_avg_cons[1:48], type="l", ylim=c(0, 1.5), 
+     col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)), 
+                main="Mean observed consumption per day", 
+                xlab = "time (half hour intervals of day)", ylab="mean consumption")
 for (i in 2:(nrow(indCons)/48)){
   lines(entire_avg_cons[((i-1)*48 +1):(i*48)], col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)))
+}
+
+# predicted values of mean predicted consumption per day with 2 bad guys removed
+ncust_mod2 = ncol(predictions3dp_modified2)
+entire_avg_mod2 = rowSums(predictions3dp_modified2)/ncust_mod2
+
+plot(entire_avg_mod2[1:48], type="l", ylim=c(0, 1.5), 
+     col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)),
+     main="Mean predicted consumption per day", 
+     xlab = "time (half hour intervals of day)", ylab="mean prediction")
+for (i in 2:(nrow(predictions3dp_modified2)/48)){
+  lines(entire_avg_mod2[((i-1)*48 +1):(i*48)], col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)))
 }
 
 
@@ -91,9 +106,11 @@ plot(weekly_MSE, type="l")
 which(weekly_MSE>1)
 # weeks 12 and 34 have weird MSE
 
+
 # can we find customers with high MSEs?
 cust_MSE = colMeans(matrix_SE)
-plot(cust_MSE, type="l", ylim=c(0,2))
+plot(cust_MSE, type="l", ylim=c(0,9), 
+     main="MSE per customer", ylab="Customer MSE")
 which(cust_MSE>2)
 
 # find the IDs of these customers
@@ -107,6 +124,17 @@ plot(indCons[, bad_MSE_names[i]], type="l")
 plot(predictions3dp_modified[, paste0(bad_MSE_names[i],"log")], type="l")
 }
 # this shows that they just have a few dodgy predictions which shoot their MSE up
+
+# one example
+par(mfrow=c(1,2))
+plot(indCons[, bad_MSE_names[3]], type="l", 
+     main="Observed demand for \ncustomer with ID: I4244",
+     xlab="time (half hourly intervals)", 
+     ylab = "demand")
+plot(predictions3dp_modified[, paste0(bad_MSE_names[3],"log")], type="l",
+     main="Predicted demand for\n customer with ID: I4244",
+     xlab="time (half hourly intervals)", 
+     ylab = "predicted demand")
 
 # 7 bad MSE customers
 # let's bin them off to then see how well our model works on a weekly basis with these 
@@ -122,7 +150,11 @@ predictions3dp_modified2 =
 matrix_SE_mod = (indCons_modified2 - predictions3dp_modified2)^2
 
 halfhourly_MSE_mod = rowMeans(matrix_SE_mod) # 15119 values
-plot(halfhourly_MSE_mod, type="l")
+par(mfrow=c(1,1))
+plot(halfhourly_MSE_mod, type="l", 
+     main="Half hourly MSE for weeks 6-50\n (with 9 high MSE customers removed)", 
+     xlab="time (half hourly intervals)", 
+     ylab = "MSE")
 
 
 weekly_MSE_mod = rep(0,wks)
@@ -130,7 +162,23 @@ for (i in 1:wks){
   weekly_MSE_mod[i] = mean(halfhourly_MSE_mod[((i-1)*336 +1):(i*336)])
 }
 
-plot(6:50,weekly_MSE_mod, type="l", xlab="week")
+# plot of mean predicted consumption per day with 9 bad guys removed
+# THIS IS THE PLOT NEAR THE TOP BUT WITH 9 AND NOT JUST 2 BAD CUSTOMERS REMOVED
+ncust_mod = ncol(predictions3dp_modified)
+entire_avg_mod = rowSums(predictions3dp_modified)/ncust_mod
+
+plot(entire_avg_mod[1:48], type="l", ylim=c(0, 1.5), 
+     col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)),
+     main="Mean predicted consumption per day", 
+     xlab = "time (half hour intervals of day)", ylab="mean prediction")
+for (i in 2:(nrow(predictions3dp_modified)/48)){
+  lines(entire_avg_mod[((i-1)*48 +1):(i*48)], col = (rgb(red = 1, green = 0, blue = 1,alpha=0.1)))
+}
+
+
+
+# want to plot this with the line for the common model overlayed
+plot(6:49,weekly_MSE_mod, type="l", xlab="week")
 
 
 
