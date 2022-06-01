@@ -155,4 +155,4 @@ all_predz_df = all_predz_df[-(1:2),] # remove first 2 rows of zeros
 all_predz_df = all_predz_df %>%
   mutate_if(is.numeric, round, digits=3)
 
-write.table(all_predz_df, file ="IndGAM_log_allPredz_parallel.txt")
+write.table(all_predz_df, file ="IndGAM_log_allPredz_parallel_week40.txt")
