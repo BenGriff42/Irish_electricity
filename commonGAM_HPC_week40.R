@@ -103,4 +103,4 @@ for(week in 7:40){
 print("exit loop")
 
 # OUT OF FOR LOOP
-write.table(predM, file ="commonGAM_log_predz.txt")
+write.table(predM, file ="commonGAM_log_predz_week40.txt")
