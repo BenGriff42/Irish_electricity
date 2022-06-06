@@ -7,7 +7,7 @@ predictions3dp = predictions %>%
 
 predictions3dp = read.table("IndGAM_log_allPredz_parallel_3dp.txt")
 
- # remove NA rows for df
+# remove NA rows for df
 predictions3dp = predictions3dp[-((nrow(predictions3dp)-336):nrow(predictions3dp)),]
 # save as txt file
 #write.table(predictions3dp, file ="IndGAM_log_allPredz_parallel_3dp.txt")
@@ -82,10 +82,11 @@ for (i in 2:(nrow(predictions3dp_modified2)/48)){
 #### CALCULATE THE MSE OF THE PREDICTIONS
 # want to check the out of sample (test data) model fit goodness
 
+# remove first 5 weeks as we didn't predict for these
+indCons = indCons[-c(1:(5*336)) , ]
 # remove the 2 odd households
 indCons_modified = indCons[, !(names(indCons) %in% bad_predz_names)]
 # remove first 5 weeks as we did not predict for these
-indCons_modified = indCons_modified[-c(1:(5*336)) , ]
 
 matrix_SE = (indCons_modified - predictions3dp_modified)^2
 
@@ -106,12 +107,19 @@ plot(weekly_MSE, type="l")
 which(weekly_MSE>1)
 # weeks 12 and 34 have weird MSE
 
-
+# for 7 bad customers (already excluded 2 bad ones)
 # can we find customers with high MSEs?
 cust_MSE = colMeans(matrix_SE)
 plot(cust_MSE, type="l", ylim=c(0,9), 
      main="MSE per customer", ylab="Customer MSE")
-which(cust_MSE>2)
+baddy9 = which(cust_MSE>2)
+baddy9 = as.vector(baddy9)
+
+
+# for 9 not 7 bad customers
+cust_MSE = colMeans((indCons - predictions3dp)^2)
+plot(cust_MSE, type="l", ylim=c(0,9), 
+     main="MSE per customer (individual GAM)", ylab="Customer MSE")
 
 # find the IDs of these customers
 bad_MSE = cust_MSE[sapply(cust_MSE, function(x) any(x>2))]
@@ -161,6 +169,10 @@ weekly_MSE_mod = rep(0,wks)
 for (i in 1:wks){
   weekly_MSE_mod[i] = mean(halfhourly_MSE_mod[((i-1)*336 +1):(i*336)])
 }
+plot(6:49, weekly_MSE_mod, type="l", xlab="week",
+     ylab = "weekly averaged MSE",
+     main = "Average MSE over all customers per week, where\n predictions are made using the individual GAM")
+
 
 # plot of mean predicted consumption per day with 9 bad guys removed
 # THIS IS THE PLOT NEAR THE TOP BUT WITH 9 AND NOT JUST 2 BAD CUSTOMERS REMOVED
@@ -176,11 +188,42 @@ for (i in 2:(nrow(predictions3dp_modified)/48)){
 }
 
 
+# plot of common and ind model overayed, weekly
+# find standard errors on predictions for weeks 5-40
+matrix_SE_com = (indCons40 - commonpreds)^2
+
+halfhourly_MSE_com = rowMeans(matrix_SE_com) # 11760 values
+plot(halfhourly_MSE_com, type="l")
+which(halfhourly_MSE_com>50) # this and the plot show no large values - MSE looks good
+
+wks_com = floor((length(halfhourly_MSE_com)/336)) # or ceiling
+
+weekly_MSE_com = rep(0,wks_com)
+for (i in 1:wks_com){
+  weekly_MSE_com[i] = mean(halfhourly_MSE_com[((i-1)*336 +1):(i*336)])
+}
 
 # want to plot this with the line for the common model overlayed
-plot(6:49,weekly_MSE_mod, type="l", xlab="week")
 
+# remove the 9 customers excluded for bad ind model from the common data
+indCons40_9exc = indCons40[, -baddy9]
+baddy9_colsnames = paste0("V", baddy9)
+commonpreds_9exc = commonpreds[, !(names(commonpreds) %in% baddy9_colsnames)]
+matrix_SE_com_9exc = (indCons40_9exc - commonpreds_9exc)^2
 
+halfhourly_MSE_com_9exc = rowMeans(matrix_SE_com_9exc) # 11760 values
+weekly_MSE_com_9exc = rep(0,wks_com)
+for (i in 1:wks_com){
+  weekly_MSE_com_9exc[i] = mean(halfhourly_MSE_com_9exc[((i-1)*336 +1):(i*336)])
+}
+
+plot(6:49,weekly_MSE_mod, type="l", xlab="week", 
+     ylab = "weekly average MSE",
+     col="magenta", 
+     main= "Weekly average for MSE over all customers\n (excluding 9 customers with erroneous individual models)")
+lines(6:40, weekly_MSE_com_9exc, col="blue")
+legend("top", inset=0.02, legend=c("Individual GAMs", "Common GAM"),
+       col=c("magenta", "blue"), lty=1, cex=0.8)
 
 
 
