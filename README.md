@@ -8,6 +8,9 @@
 * ```DynamicModel.R``` is a file that is is incomplete. Trying to make a model that takes in only the last 3 days of data to forecast for the upcoming day. It is incomplete. 
 * ```commonGAM_HPC.R``` is a file for running the GAM that models all the households aggregated together to a common model. It uses the HPC and some parallelisation to speed up it's running. There is a `.sh` file that goes with this.
 * `readin_parallel_HPC_IndGAM_predz.R` is a script that takes in the **IndGAM_log_allPredz_parallel_3dp.txt** file, which are the results from the running of individual GAM for each household. It finds that there are 2 households which have silly large values of prediction, where the model just hasn't fit well, so we omit these and then make some diagnostic plots of how well we think the models perform vs. the truth. 
+*  ```commonGAM_HPC_week40.R``` is a file that only predicts up to week 40. It does this in order for us to be able to run it on the HPC and successfully obtain results. 
+*  `readin_HPC_commonGAM_predz.R` reads in the **commonGAM_log_predz_week40.txt** file output from the script in the previous bullet point, and allows us to see, analyse, and make plots from the output predictions that the common GAM model makes. 
 
 
 * ```HPC_jobs.ods``` is a spreadsheet that records all the jobs sent off to the HPC during this project. 
+* There are various plots saved as **.pdf** files in this repository. They are appropriately named, and are plots that appear in the written report.
